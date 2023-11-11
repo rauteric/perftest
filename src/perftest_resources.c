@@ -322,7 +322,7 @@ static inline int _new_post_send(struct pingpong_context *ctx,
 				wr->wr.rdma.remote_addr);
 			break;
 		case IBV_WR_RDMA_WRITE_WITH_IMM:
-			ibv_wr_rdma_write_with_imm(
+			ibv_wr_rdma_write_imm(
 				ctx->qpx[index],
 				wr->wr.rdma.rkey,
 				wr->wr.rdma.remote_addr, 0);
