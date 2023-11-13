@@ -316,7 +316,6 @@ static inline int _new_post_send(struct pingpong_context *ctx,
 			ibv_wr_send(ctx->qpx[index]);
 			break;
 		case IBV_WR_RDMA_WRITE:
-			abort();
 			ibv_wr_rdma_write(
 				ctx->qpx[index],
 				wr->wr.rdma.rkey,
@@ -1290,7 +1289,7 @@ int destroy_ctx(struct pingpong_context *ctx,
 		test_result = 1;
 	}
 
-	if ((user_param->verb == SEND) || (user_param->connection_type == DC && !dct_only)){
+	if (true || (user_param->verb == SEND) || (user_param->connection_type == DC && !dct_only)){
 		if (ibv_destroy_cq(ctx->recv_cq)) {
 				fprintf(stderr, "Failed to destroy CQ - %s\n", strerror(errno));
 				test_result = 1;
@@ -1566,7 +1565,7 @@ int create_cqs(struct pingpong_context *ctx, struct perftest_parameters *user_pa
 	if (dct_only)
 		tx_buffer_depth = user_param->rx_depth;
 
-	if ((user_param->connection_type == DC && !dct_only) || (user_param->verb == SEND))
+	if (true || (user_param->connection_type == DC && !dct_only) || (user_param->verb == SEND))
 		need_recv_cq = 1;
 
 	ret = create_reg_cqs(ctx, user_param, tx_buffer_depth, need_recv_cq);
@@ -2121,7 +2120,7 @@ xrc_srq:
 cqs:
 	ibv_destroy_cq(ctx->send_cq);
 
-	if ((user_param->verb == SEND) || (user_param->connection_type == DC && !dct_only)){
+	if (true || (user_param->verb == SEND) || (user_param->connection_type == DC && !dct_only)){
 		ibv_destroy_cq(ctx->recv_cq);
 	}
 
@@ -2238,7 +2237,8 @@ struct ibv_qp* ctx_qp_create(struct pingpong_context *ctx,
 	#endif
 
 	attr.send_cq = ctx->send_cq;
-	attr.recv_cq = (user_param->verb == SEND) ? ctx->recv_cq : ctx->send_cq;
+	//attr.recv_cq = (user_param->verb == SEND) ? ctx->recv_cq : ctx->send_cq;
+	attr.recv_cq = ctx->recv_cq;
 	if (user_param->verb == SEND) abort();
 
 	is_dc_server_side = ((!(user_param->duplex || user_param->tst == LAT) &&
@@ -2307,7 +2307,7 @@ struct ibv_qp* ctx_qp_create(struct pingpong_context *ctx,
 			attr_ex.send_ops_flags |= IBV_QP_EX_WITH_RDMA_WRITE;
 		else if (opcode == IBV_WR_RDMA_WRITE_WITH_IMM) {
 			fprintf(stderr, "Adding flag IBV_WR_RDMA_WRITE_WITH_IMM\n");
-			attr_ex.send_ops_flags |= IBV_QP_EX_WITH_RDMA_WRITE_WITH_IMM;
+			attr_ex.send_ops_flags |= (IBV_QP_EX_WITH_SEND | IBV_QP_EX_WITH_RDMA_READ | IBV_QP_EX_WITH_RDMA_WRITE | IBV_QP_EX_WITH_RDMA_WRITE_WITH_IMM);
 		}
 		else if (opcode == IBV_WR_RDMA_READ)
 			attr_ex.send_ops_flags |= IBV_QP_EX_WITH_RDMA_READ;
@@ -2964,15 +2964,6 @@ void ctx_set_send_reg_wqes(struct pingpong_context *ctx,
 		num_of_qps /= 2;
 		xrc_offset = num_of_qps;
 	}
-	/* Post a recv to handle the incoming wr-with-imm */
-	if (user_param->use_srq) abort();
-	if (user_param->num_of_qps != 1) abort();
-	struct ibv_recv_wr      *bad_wr_recv = NULL;
-	fprintf(stderr, "ERDBG posting a recv\n");
-	if (ibv_post_recv(ctx->qp[0], &ctx->rwr[0], &bad_wr_recv)) {
-		fprintf(stderr, "Error posting recv");
-		abort();
-	}
 
 	for (i = 0; i < num_of_qps ; i++) {
 		if (user_param->connection_type == DC)
@@ -3107,6 +3098,16 @@ void ctx_set_send_reg_wqes(struct pingpong_context *ctx,
 				ctx->wr[i*user_param->post_list + j].qp_type.xrc.remote_srqn = rem_dest[xrc_offset + i].srqn;
 			#endif
 		}
+	}
+
+	/* Post a recv to handle the incoming wr-with-imm */
+	if (user_param->use_srq) abort();
+	if (user_param->num_of_qps != 1) abort();
+	struct ibv_recv_wr      *bad_wr_recv = NULL;
+	fprintf(stderr, "ERDBG posting a recv\n");
+	if (ibv_post_recv(ctx->qp[0], &ctx->rwr[0], &bad_wr_recv)) {
+		fprintf(stderr, "Error posting recv");
+		abort();
 	}
 }
 
@@ -4468,6 +4469,7 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 			catch_alarm(0);
 	}
 
+
 	/* Done with setup. Start the test. */
 	while (scnt < user_param->iters || ccnt < user_param->iters || rcnt < user_param->iters
 			|| ((user_param->test_type == DURATION && user_param->state != END_STATE))) {
@@ -4476,7 +4478,7 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 		if ((rcnt < user_param->iters || user_param->test_type == DURATION) && !(scnt < 1 && user_param->machine == SERVER)) {
 			fprintf(stderr, "ERDBG 1.1\n");
 			/* Poll for a recv completion */
-			do { ne = ibv_poll_cq(ctx->send_cq, 1, &wc); } while (ne == 0);
+			do { ne = ibv_poll_cq(ctx->recv_cq, 1, &wc); } while (ne == 0);
 			fprintf(stderr, "ERDBG 1.2\n");
 			if(ne > 0) {
 
