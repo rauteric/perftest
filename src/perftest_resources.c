@@ -316,12 +316,14 @@ static inline int _new_post_send(struct pingpong_context *ctx,
 			ibv_wr_send(ctx->qpx[index]);
 			break;
 		case IBV_WR_RDMA_WRITE:
+			abort();
 			ibv_wr_rdma_write(
 				ctx->qpx[index],
 				wr->wr.rdma.rkey,
 				wr->wr.rdma.remote_addr);
 			break;
 		case IBV_WR_RDMA_WRITE_WITH_IMM:
+			fprintf(stderr, "Sending write with imm\n");
 			ibv_wr_rdma_write_imm(
 				ctx->qpx[index],
 				wr->wr.rdma.rkey,
@@ -423,6 +425,7 @@ static inline int _new_post_send(struct pingpong_context *ctx,
 		wr = wr->next;
 	}
 	rc = ibv_wr_complete(ctx->qpx[index]);
+	fprintf(stderr, "Completed rc=%d\n", rc);
 
 	return rc;
 }
@@ -691,6 +694,7 @@ static inline int post_send_method(struct pingpong_context *ctx, int index,
  ******************************************************************************/
 static int ctx_xrcd_create(struct pingpong_context *ctx,struct perftest_parameters *user_param)
 {
+	abort();
 	char *tmp_file_name;
 	struct ibv_xrcd_init_attr xrcd_init_attr;
 
@@ -722,6 +726,7 @@ static int ctx_xrcd_create(struct pingpong_context *ctx,struct perftest_paramete
 static int ctx_xrc_srq_create(struct pingpong_context *ctx,
 			      struct perftest_parameters *user_param)
 {
+	abort();
 	struct ibv_srq_init_attr_ex srq_init_attr;
 
 	memset(&srq_init_attr, 0, sizeof(srq_init_attr));
@@ -807,8 +812,9 @@ static struct ibv_qp *ctx_xrc_qp_create(struct pingpong_context *ctx,
 				qp_init_attr.send_ops_flags |= IBV_QP_EX_WITH_SEND;
 			else if (opcode == IBV_WR_RDMA_WRITE)
 				qp_init_attr.send_ops_flags |= IBV_QP_EX_WITH_RDMA_WRITE;
-			else if (opcode == IBV_WR_RDMA_WRITE_WITH_IMM)
+			else if (opcode == IBV_WR_RDMA_WRITE_WITH_IMM) {
 				qp_init_attr.send_ops_flags |= IBV_QP_EX_WITH_RDMA_WRITE_WITH_IMM;
+			}
 			else if (opcode == IBV_WR_RDMA_READ)
 				qp_init_attr.send_ops_flags |= IBV_QP_EX_WITH_RDMA_READ;
 		}
@@ -1522,6 +1528,8 @@ int create_reg_cqs(struct pingpong_context *ctx,
 		   struct perftest_parameters *user_param,
 		   int tx_buffer_depth, int need_recv_cq)
 {
+	if (ctx->send_channel != NULL) abort();
+	if (ctx->recv_channel != NULL) abort();
 	ctx->send_cq = ibv_create_cq(ctx->context,tx_buffer_depth *
 					user_param->num_of_qps, NULL, ctx->send_channel, user_param->eq_num);
 	if (!ctx->send_cq) {
@@ -1530,6 +1538,7 @@ int create_reg_cqs(struct pingpong_context *ctx,
 	}
 
 	if (need_recv_cq) {
+		abort();
 		ctx->recv_cq = ibv_create_cq(ctx->context,user_param->rx_depth *
 						user_param->num_of_qps, NULL, ctx->recv_channel, user_param->eq_num);
 		if (!ctx->recv_cq) {
@@ -2030,6 +2039,7 @@ int ctx_init(struct pingpong_context *ctx, struct perftest_parameters *user_para
 			user_param->machine == SERVER ||
 			user_param->duplex == ON))
 	{
+		abort();
 		struct ibv_srq_init_attr_ex attr;
 			memset(&attr, 0, sizeof(attr));
 		attr.comp_mask = IBV_SRQ_INIT_ATTR_TYPE | IBV_SRQ_INIT_ATTR_PD;
@@ -2229,6 +2239,7 @@ struct ibv_qp* ctx_qp_create(struct pingpong_context *ctx,
 
 	attr.send_cq = ctx->send_cq;
 	attr.recv_cq = (user_param->verb == SEND) ? ctx->recv_cq : ctx->send_cq;
+	if (user_param->verb == SEND) abort();
 
 	is_dc_server_side = ((!(user_param->duplex || user_param->tst == LAT) &&
 						  (user_param->machine == SERVER)) ||
@@ -2287,14 +2298,17 @@ struct ibv_qp* ctx_qp_create(struct pingpong_context *ctx,
 			attr_ex.send_ops_flags |= IBV_QP_EX_WITH_ATOMIC_CMP_AND_SWP;
 	}
 	else {
+		if (user_param->verb != WRITE) abort();
 		opcode = opcode_verbs_array[user_param->verb];
 		if(0);
 		else if (opcode == IBV_WR_SEND)
 			attr_ex.send_ops_flags |= IBV_QP_EX_WITH_SEND;
 		else if (opcode == IBV_WR_RDMA_WRITE)
 			attr_ex.send_ops_flags |= IBV_QP_EX_WITH_RDMA_WRITE;
-		else if (opcode == IBV_WR_RDMA_WRITE_WITH_IMM)
+		else if (opcode == IBV_WR_RDMA_WRITE_WITH_IMM) {
+			fprintf(stderr, "Adding flag IBV_WR_RDMA_WRITE_WITH_IMM\n");
 			attr_ex.send_ops_flags |= IBV_QP_EX_WITH_RDMA_WRITE_WITH_IMM;
+		}
 		else if (opcode == IBV_WR_RDMA_READ)
 			attr_ex.send_ops_flags |= IBV_QP_EX_WITH_RDMA_READ;
 	}
@@ -2311,7 +2325,7 @@ struct ibv_qp* ctx_qp_create(struct pingpong_context *ctx,
 	attr_ex.cap.max_recv_sge = attr.cap.max_recv_sge;
 	#endif
 
-	if (user_param->work_rdma_cm) {
+	if (user_param->work_rdma_cm) { abort();
 		#ifdef HAVE_IBV_WR_API
 		if (!user_param->use_old_post_send)
 		{
@@ -2339,8 +2353,12 @@ struct ibv_qp* ctx_qp_create(struct pingpong_context *ctx,
 		#ifdef HAVE_SRD
 		#ifdef HAVE_IBV_WR_API
 		efa_attr.driver_qp_type = EFADV_QP_DRIVER_TYPE_SRD;
+		fprintf(stderr, "send_cq: %p\n", attr_ex.send_cq);
+		fprintf(stderr, "recv_cq: %p\n", attr_ex.recv_cq);
 		qp = efadv_create_qp_ex(ctx->context, &attr_ex,
 					&efa_attr, sizeof(efa_attr));
+		fprintf(stderr, "max_recv_wr = %u", attr.cap.max_recv_wr);
+		fprintf(stderr, "max_recv_sge = %u", attr.cap.max_recv_sge);
 		#else
 		qp = efadv_create_driver_qp(ctx->pd, &attr,
 					    EFADV_QP_DRIVER_TYPE_SRD);
@@ -2946,9 +2964,15 @@ void ctx_set_send_reg_wqes(struct pingpong_context *ctx,
 		num_of_qps /= 2;
 		xrc_offset = num_of_qps;
 	}
+	/* Post a recv to handle the incoming wr-with-imm */
 	if (user_param->use_srq) abort();
 	if (user_param->num_of_qps != 1) abort();
+	struct ibv_recv_wr      *bad_wr_recv = NULL;
 	fprintf(stderr, "ERDBG posting a recv\n");
+	if (ibv_post_recv(ctx->qp[0], &ctx->rwr[0], &bad_wr_recv)) {
+		fprintf(stderr, "Error posting recv");
+		abort();
+	}
 
 	for (i = 0; i < num_of_qps ; i++) {
 		if (user_param->connection_type == DC)
@@ -3274,6 +3298,7 @@ cleaning:
  ******************************************************************************/
 int perform_warm_up(struct pingpong_context *ctx,struct perftest_parameters *user_param)
 {
+	abort();
 	int 			ne,index,warmindex,warmupsession;
 	int 			err = 0;
 	struct ibv_wc 		wc;
@@ -4446,10 +4471,13 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 	/* Done with setup. Start the test. */
 	while (scnt < user_param->iters || ccnt < user_param->iters || rcnt < user_param->iters
 			|| ((user_param->test_type == DURATION && user_param->state != END_STATE))) {
+		fprintf(stderr, "ERDBG 1\n");
 
 		if ((rcnt < user_param->iters || user_param->test_type == DURATION) && !(scnt < 1 && user_param->machine == SERVER)) {
+			fprintf(stderr, "ERDBG 1.1\n");
 			/* Poll for a recv completion */
 			do { ne = ibv_poll_cq(ctx->send_cq, 1, &wc); } while (ne == 0);
+			fprintf(stderr, "ERDBG 1.2\n");
 			if(ne > 0) {
 
 				if (wc.status != IBV_WC_SUCCESS) {
@@ -4470,6 +4498,7 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 			rcnt++;
 			while (*poll_buf != (char)rcnt && user_param->state != END_STATE);
 		}
+		fprintf(stderr, "ERDBG 2\n");
 
 		if (scnt < user_param->iters || user_param->test_type == DURATION) {
 
@@ -4486,7 +4515,9 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 
 			*post_buf = (char)++scnt;
 
+			fprintf(stderr, "ERDBG 3\n");
 			err = post_send_method(ctx, 0, user_param);
+			fprintf(stderr, "ERDBG 4\n");
 
 			if (err) {
 				fprintf(stderr,"Couldn't post send: scnt=%lu\n",scnt);
@@ -4499,7 +4530,9 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 
 		if (ccnt < user_param->iters || user_param->test_type == DURATION) {
 
+			fprintf(stderr, "ERDBG 5\n");
 			do { ne = ibv_poll_cq(ctx->send_cq, 1, &wc); } while (ne == 0);
+			fprintf(stderr, "ERDBG 6\n");
 
 			if(ne > 0) {
 
@@ -4521,6 +4554,7 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 				return FAILURE;
 			}
 		}
+		fprintf(stderr, "ERDBG 7\n");
 	}
 	return 0;
 }
