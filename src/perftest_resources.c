@@ -1067,13 +1067,17 @@ int alloc_ctx(struct pingpong_context *ctx,struct perftest_parameters *user_para
 		ALLOC(ctx->ah, struct ibv_ah*, user_param->num_of_qps);
 	}
 
-	if (user_param->verb == SEND && (user_param->tst == LAT || user_param->machine == SERVER || user_param->duplex)) {
+	if (true || (user_param->verb == SEND && (user_param->tst == LAT || user_param->machine == SERVER || user_param->duplex))) {
 		ALLOC(ctx->recv_sge_list, struct ibv_sge,
 			 user_param->num_of_qps * user_param->recv_post_list);
 		ALLOC(ctx->rwr, struct ibv_recv_wr,
 			 user_param->num_of_qps * user_param->recv_post_list);
 		ALLOC(ctx->rx_buffer_addr, uint64_t, user_param->num_of_qps);
 	}
+	ctx->rwr[0].wr_id = 0;
+	ctx->rwr[0].next = NULL;;
+	ctx->rwr[0].sg_list = NULL;
+	ctx->rwr[0].num_sge = 0;
 	if (user_param->mac_fwd == ON )
 		ctx->cycle_buffer = user_param->size * user_param->rx_depth;
 
@@ -1178,7 +1182,7 @@ void dealloc_ctx(struct pingpong_context *ctx,struct perftest_parameters *user_p
 			free(ctx->ah);
 	}
 
-	if (user_param->verb == SEND && (user_param->tst == LAT || user_param->machine == SERVER || user_param->duplex)) {
+	if (true || (user_param->verb == SEND && (user_param->tst == LAT || user_param->machine == SERVER || user_param->duplex))) {
 		if (ctx->recv_sge_list != NULL)
 			free(ctx->recv_sge_list);
 		if (ctx->rwr != NULL)
@@ -1385,7 +1389,7 @@ int destroy_ctx(struct pingpong_context *ctx,
 		free(ctx->wr);
 	}
 
-	if (user_param->verb == SEND && (user_param->tst == LAT || user_param->machine == SERVER || user_param->duplex)) {
+	if (true || (user_param->verb == SEND && (user_param->tst == LAT || user_param->machine == SERVER || user_param->duplex))) {
 
 		free(ctx->rx_buffer_addr);
 		free(ctx->recv_sge_list);
@@ -2942,6 +2946,9 @@ void ctx_set_send_reg_wqes(struct pingpong_context *ctx,
 		num_of_qps /= 2;
 		xrc_offset = num_of_qps;
 	}
+	if (user_param->use_srq) abort();
+	if (user_param->num_of_qps != 1) abort();
+	fprintf(stderr, "ERDBG posting a recv\n");
 
 	for (i = 0; i < num_of_qps ; i++) {
 		if (user_param->connection_type == DC)
@@ -4441,6 +4448,25 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 			|| ((user_param->test_type == DURATION && user_param->state != END_STATE))) {
 
 		if ((rcnt < user_param->iters || user_param->test_type == DURATION) && !(scnt < 1 && user_param->machine == SERVER)) {
+			/* Poll for a recv completion */
+			do { ne = ibv_poll_cq(ctx->send_cq, 1, &wc); } while (ne == 0);
+			if(ne > 0) {
+
+				if (wc.status != IBV_WC_SUCCESS) {
+					//coverity[uninit_use_in_call]
+					NOTIFY_COMP_ERROR_SEND(wc,scnt,ccnt);
+					return 1;
+				}
+				if (wc.opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
+					fprintf(stderr, "Got completion for non-write");
+					abort();
+				}
+
+			} else if (ne < 0) {
+				fprintf(stderr, "poll CQ failed %d\n", ne);
+				return FAILURE;
+			}
+
 			rcnt++;
 			while (*poll_buf != (char)rcnt && user_param->state != END_STATE);
 		}
