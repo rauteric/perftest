@@ -250,6 +250,15 @@ int main(int argc, char *argv[])
 
 	ctx_set_send_wqes(&ctx,&user_param,rem_dest);
 
+	/* Sync between the client and server so the client won't send packets
+	 * Before the server has posted his receive wqes (in UC/UD it will result in a deadlock).
+	 */
+
+	if (ctx_hand_shake(&user_comm,&my_dest[0],&rem_dest[0])) {
+		fprintf(stderr,"Failed to exchange data between server and clients\n");
+		goto free_mem;
+	}
+
 	if (user_param.output == FULL_VERBOSITY) {
 		printf(RESULT_LINE);
 		printf("%s",(user_param.test_type == ITERATIONS) ? RESULT_FMT_LAT : RESULT_FMT_LAT_DUR);
