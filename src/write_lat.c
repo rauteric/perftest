@@ -250,22 +250,13 @@ int main(int argc, char *argv[])
 
 	ctx_set_send_wqes(&ctx,&user_param,rem_dest);
 
-	/* Sync between the client and server so the client won't send packets
-	 * Before the server has posted his receive wqes (in UC/UD it will result in a deadlock).
-	 */
-
-	if (ctx_hand_shake(&user_comm,&my_dest[0],&rem_dest[0])) {
-		fprintf(stderr,"Failed to exchange data between server and clients\n");
-		goto free_mem;
-	}
-
 	if (user_param.output == FULL_VERBOSITY) {
 		printf(RESULT_LINE);
 		printf("%s",(user_param.test_type == ITERATIONS) ? RESULT_FMT_LAT : RESULT_FMT_LAT_DUR);
 		printf((user_param.cpu_util_data.enable ? RESULT_EXT_CPU_UTIL : RESULT_EXT));
 	}
 
-	if (user_param.test_method == RUN_ALL) {
+	if (user_param.test_method == RUN_ALL) { abort();
 
 		for (i = 1; i < 24 ; ++i) {
 			user_param.size = (uint64_t)1 << i;
@@ -278,6 +269,18 @@ int main(int argc, char *argv[])
 		}
 
 	} else {
+
+		/* Post receive recv_wqes fo current message size */
+		if (ctx_set_recv_wqes(&ctx,&user_param)) {
+			fprintf(stderr," Failed to post receive recv_wqes\n");
+			goto free_mem;
+		}
+
+		/* Sync */
+		if (ctx_hand_shake(&user_comm,&my_dest[0],&rem_dest[0])) {
+			fprintf(stderr,"Failed to exchange data between server and clients\n");
+			goto free_mem;
+		}
 
 		if(run_iter_lat_write(&ctx,&user_param)) {
 			fprintf(stderr,"Test exited with Error\n");

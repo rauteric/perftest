@@ -1080,10 +1080,6 @@ int alloc_ctx(struct pingpong_context *ctx,struct perftest_parameters *user_para
 			 user_param->num_of_qps * user_param->recv_post_list);
 		ALLOC(ctx->rx_buffer_addr, uint64_t, user_param->num_of_qps);
 	}
-	ctx->rwr[0].wr_id = 0;
-	ctx->rwr[0].next = NULL;;
-	ctx->rwr[0].sg_list = NULL;
-	ctx->rwr[0].num_sge = 0;
 	if (user_param->mac_fwd == ON )
 		ctx->cycle_buffer = user_param->size * user_param->rx_depth;
 
@@ -3102,15 +3098,8 @@ void ctx_set_send_reg_wqes(struct pingpong_context *ctx,
 		}
 	}
 
-	/* Post a recv to handle the incoming wr-with-imm */
 	if (user_param->use_srq) abort();
 	if (user_param->num_of_qps != 1) abort();
-	struct ibv_recv_wr      *bad_wr_recv = NULL;
-	fprintf(stderr, "ERDBG posting a recv\n");
-	if (ibv_post_recv(ctx->qp[0], &ctx->rwr[0], &bad_wr_recv)) {
-		fprintf(stderr, "Error posting recv");
-		abort();
-	}
 }
 
 /******************************************************************************
@@ -3157,6 +3146,7 @@ int ctx_set_recv_wqes(struct pingpong_context *ctx,struct perftest_parameters *u
 				ctx->recv_sge_list[i * user_param->recv_post_list + j].addr = ctx->recv_sge_list[i * user_param->recv_post_list + j - 1].addr;
 
 				if ((user_param->tst == BW || user_param->tst == LAT_BY_BW) && user_param->size <= (ctx->cycle_buffer / 2)) {
+					abort();
 					increase_loc_addr(&ctx->recv_sge_list[i * user_param->recv_post_list + j],
 							user_param->size,
 							j,
@@ -3171,13 +3161,15 @@ int ctx_set_recv_wqes(struct pingpong_context *ctx,struct perftest_parameters *u
 
 			if (j == (user_param->recv_post_list - 1))
 				ctx->rwr[i * user_param->recv_post_list + j].next = NULL;
-			else
+			else {
+				abort();
 				ctx->rwr[i * user_param->recv_post_list + j].next = &ctx->rwr[i * user_param->recv_post_list + j + 1];
+			}
 		}
 
 		for (j = 0; j < size_per_qp ; ++j) {
 
-			if (user_param->use_srq) {
+			if (user_param->use_srq) { abort();
 
 				if (ibv_post_srq_recv(ctx->srq,&ctx->rwr[i * user_param->recv_post_list], &bad_wr_recv)) {
 					fprintf(stderr, "Couldn't post recv SRQ = %d: counter=%d\n",i,j);
@@ -3194,6 +3186,7 @@ int ctx_set_recv_wqes(struct pingpong_context *ctx,struct perftest_parameters *u
 
 			if (user_param->recv_post_list == 1 && (user_param->tst == BW || user_param->tst == LAT_BY_BW) &&
 					user_param->size <= (ctx->cycle_buffer / 2)) {
+				abort();
 				increase_loc_addr(&ctx->recv_sge_list[i * user_param->recv_post_list],
 						user_param->size,
 						j,
@@ -4461,7 +4454,10 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 	volatile char           *poll_buf = NULL;
 	volatile char           *post_buf = NULL;
 
+	int 			size_per_qp = (user_param->use_srq) ?
+					user_param->rx_depth/user_param->num_of_qps : user_param->rx_depth;
 	struct ibv_wc           wc;
+	struct ibv_recv_wr 	*bad_wr_recv = NULL;
 
 	int 			cpu_mhz = get_cpu_mhz(user_param->cpu_freq_f);
 	int 			total_gap_cycles = user_param->latency_gap * cpu_mhz;
@@ -4526,6 +4522,25 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 					abort();
 				}
 
+				/*if we're in duration mode or there
+				 * is enough space in the rx_depth,
+				 * post that you received a packet.
+				 */
+				if (user_param->test_type == DURATION || (rcnt + size_per_qp <= user_param->iters)) {
+					if (user_param->use_srq) {
+						if (ibv_post_srq_recv(ctx->srq, &ctx->rwr[wc.wr_id], &bad_wr_recv)) {
+							fprintf(stderr, "Couldn't post recv SRQ. QP = %d: counter=%lu\n",(int)wc.wr_id, rcnt);
+							return 1;
+						}
+
+					} else {
+						if (ibv_post_recv(ctx->qp[wc.wr_id], &ctx->rwr[wc.wr_id], &bad_wr_recv)) {
+							fprintf(stderr, "Couldn't post recv: rcnt=%lu\n", rcnt);
+							return 15;
+						}
+					}
+				}
+
 			} else if (ne < 0) {
 				fprintf(stderr, "poll CQ failed %d\n", ne);
 				return FAILURE;
@@ -4548,7 +4563,6 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 				user_param->tposted[scnt] = get_cycles();
 
 			*post_buf = (char)++scnt;
-			sleep(5);
 			fprintf(stderr, "ERDBG 3\n");
 			err = post_send_method(ctx, 0, user_param);
 			fprintf(stderr, "ERDBG 4\n");
