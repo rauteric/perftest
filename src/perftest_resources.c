@@ -2462,8 +2462,8 @@ int ctx_modify_qp_to_init(struct ibv_qp *qp,struct perftest_parameters *user_par
 		switch (user_param->verb) {
 			case ATOMIC: attr.qp_access_flags = IBV_ACCESS_REMOTE_ATOMIC; break;
 			case READ  : attr.qp_access_flags = IBV_ACCESS_REMOTE_READ;  break;
-			case WRITE :
 			case WRITE_IMM:
+			case WRITE :
 				     attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE; break;
 			case SEND  : attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE;
 		}
@@ -2760,8 +2760,8 @@ static void ctx_post_send_work_request_func_pointer(struct pingpong_context *ctx
 					ctx->new_post_send_work_request_func_pointer = &new_post_send_sge_dc;
 				}
 				break;
-			case WRITE:
 			case WRITE_IMM:
+			case WRITE:
 				if (use_inl) {
 					ctx->new_post_send_work_request_func_pointer = &new_post_write_inl_dc;
 				}
@@ -2797,8 +2797,8 @@ static void ctx_post_send_work_request_func_pointer(struct pingpong_context *ctx
 					ctx->new_post_send_work_request_func_pointer = &new_post_send_sge_rc;
 				}
 				break;
-			case WRITE:
 			case WRITE_IMM:
+			case WRITE:
 				if(use_enc) {
 					ctx->new_post_send_work_request_func_pointer = &new_post_write_sge_enc_rc;
 				}
@@ -2853,8 +2853,8 @@ static void ctx_post_send_work_request_func_pointer(struct pingpong_context *ctx
 					ctx->new_post_send_work_request_func_pointer = &new_post_send_sge_uc;
 				}
 				break;
-			case WRITE:
 			case WRITE_IMM:
+			case WRITE:
 				if (use_inl) {
 					ctx->new_post_send_work_request_func_pointer = &new_post_write_inl_uc;
 				}
@@ -2876,8 +2876,8 @@ static void ctx_post_send_work_request_func_pointer(struct pingpong_context *ctx
 					ctx->new_post_send_work_request_func_pointer = &new_post_send_sge_xrc;
 				}
 				break;
-			case WRITE:
 			case WRITE_IMM:
+			case WRITE:
 				if (use_inl) {
 					ctx->new_post_send_work_request_func_pointer = &new_post_write_inl_xrc;
 				}
@@ -2913,8 +2913,8 @@ static void ctx_post_send_work_request_func_pointer(struct pingpong_context *ctx
 			case READ:
 				ctx->new_post_send_work_request_func_pointer = &new_post_read_sge_srd;
 				break;
-			case WRITE:
 			case WRITE_IMM:
+			case WRITE:
 				if (use_inl) {
 					ctx->new_post_send_work_request_func_pointer = &new_post_write_inl_srd;
 				} else {
