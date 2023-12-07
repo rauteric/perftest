@@ -517,7 +517,8 @@ void ctx_set_send_wqes(struct pingpong_context *ctx,
  *
  * Description :
  *
- *	Prepare the receives work request templates for all QPs in SEND receive test.
+ *	Prepare the receives work request templates for all QPs in SEND and
+ *	WRITE_IMM receive test.
  *
  * Parameters :
  *

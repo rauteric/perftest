@@ -4465,7 +4465,7 @@ int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *
 					* is enough space in the rx_depth,
 					* post that you received a packet.
 					*/
-					if (user_param->test_type == DURATION || (rcnt + size_per_qp <= user_param->iters)) {
+					if (user_param->test_type == DURATION || (rcnt < user_param->iters)) {
 						if (user_param->use_srq) {
 							if (ibv_post_srq_recv(ctx->srq, &ctx->rwr[wc.wr_id], &bad_wr_recv)) {
 								fprintf(stderr, "Couldn't post recv SRQ. QP = %d: counter=%lu\n",(int)wc.wr_id, rcnt);
