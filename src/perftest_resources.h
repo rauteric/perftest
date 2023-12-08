@@ -648,6 +648,19 @@ int run_iter_bi(struct pingpong_context *ctx,struct perftest_parameters *user_pa
  */
 int run_iter_lat_write(struct pingpong_context *ctx,struct perftest_parameters *user_param);
 
+/* run_iter_lat_write_imm
+ *
+ * Description :
+ *
+ *  This is the latency test function for WRITE_IMM verb.
+ *
+ * Parameters :
+ *
+ *	ctx     - Test Context.
+ *	user_param  - user_parameters struct for this test.
+ */
+int run_iter_lat_write_imm(struct pingpong_context *ctx,struct perftest_parameters *user_param);
+
 /* run_iter_lat
  *
  * Description :

@@ -276,11 +276,16 @@ int main(int argc, char *argv[])
 					fprintf(stderr,"Failed to exchange data between server and clients\n");
 					goto free_mem;
 				}
-			}
 
-			if(run_iter_lat_write(&ctx,&user_param)) {
-				fprintf(stderr,"Test exited with Error\n");
-				goto free_mem;
+				if(run_iter_lat_write_imm(&ctx,&user_param)) {
+					fprintf(stderr,"Test exited with Error\n");
+					goto free_mem;
+				}
+			} else {
+				if(run_iter_lat_write(&ctx,&user_param)) {
+					fprintf(stderr,"Test exited with Error\n");
+					goto free_mem;
+				}
 			}
 
 			user_param.test_type == ITERATIONS ? print_report_lat(&user_param) : print_report_lat_duration(&user_param);
@@ -303,12 +308,18 @@ int main(int argc, char *argv[])
 				fprintf(stderr,"Failed to exchange data between server and clients\n");
 				goto free_mem;
 			}
+
+			if(run_iter_lat_write_imm(&ctx,&user_param)) {
+				fprintf(stderr,"Test exited with Error\n");
+				goto free_mem;
+			}
+		} else {
+			if(run_iter_lat_write(&ctx,&user_param)) {
+				fprintf(stderr,"Test exited with Error\n");
+				goto free_mem;
+			}
 		}
 
-		if(run_iter_lat_write(&ctx,&user_param)) {
-			fprintf(stderr,"Test exited with Error\n");
-			goto free_mem;
-		}
 		user_param.test_type == ITERATIONS ? print_report_lat(&user_param) : print_report_lat_duration(&user_param);
 	}
 
