@@ -4571,8 +4571,8 @@ int run_iter_lat_write_imm(struct pingpong_context *ctx,struct perftest_paramete
 					return 1;
 				}
 
-				/*if we're in duration mode or there
-				* is enough space in the rx_depth,
+				/*if we're in duration mode or we
+				* expect another completion,
 				* post that you received a packet.
 				*/
 				if (user_param->test_type == DURATION || (rcnt < user_param->iters)) {
