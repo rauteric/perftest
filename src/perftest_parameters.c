@@ -624,7 +624,7 @@ static void usage(const char *argv0, VerbType verb, TestType tst, int connection
 	printf(" Use out of order data placement\n");
 	#endif
 
-	if ((tst == LAT || test == BW) && verb == WRITE) {
+	if ((tst == LAT || tst == BW) && verb == WRITE) {
 		printf("      --write_with_imm ");
 		printf(" use write-with-immediate verb instead of write\n");
 	}
@@ -3021,7 +3021,7 @@ int parser(struct perftest_parameters *user_param,char *argv[], int argc)
 				}
 				#endif
 				if (use_write_with_imm_flag) {
-					if ((user_param->tst != LAT && user_param->test != BW) || user_param->verb != WRITE) {
+					if ((user_param->tst != LAT && user_param->tst != BW) || user_param->verb != WRITE) {
 						fprintf(stderr, "Write_with_imm can only be used with write_lat and write_bw tests\n");
 						return FAILURE;
 					}

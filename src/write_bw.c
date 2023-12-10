@@ -433,26 +433,26 @@ int main(int argc, char *argv[])
 		if (user_param.machine == CLIENT || user_param.duplex)
 			ctx_set_send_wqes(&ctx,&user_param,rem_dest);
 
-		else if (user_param.machine == SERVER && user_param->verb == WRITE_IMM) {
+		else if (user_param.machine == SERVER && user_param.verb == WRITE_IMM) {
 			if (ctx_set_recv_wqes(&ctx,&user_param)) {
 				fprintf(stderr," Failed to post receive recv_wqes\n");
 				goto free_mem;
 			}
 		}
 
-		if (user_param->verb == WRITE_IMM) {
+		if (user_param.verb == WRITE_IMM) {
 			if (ctx_hand_shake(&user_comm,&my_dest[0],&rem_dest[0])) {
 				fprintf(stderr,"Failed to exchange data between server and clients\n");
 				goto free_mem;
 			}
 		}
 
-		if (user_param.machine == CLIENT || user_param->verb == WRITE) {
+		if (user_param.machine == CLIENT || user_param.verb == WRITE) {
 			if(run_iter_bw_infinitely(&ctx,&user_param)) {
 				fprintf(stderr," Error occurred while running infinitely! aborting ...\n");
 				goto free_mem;
 			}
-		} else if (user_param.machine == SERVER && user_param->verb == WRITE_IMM) {
+		} else if (user_param.machine == SERVER && user_param.verb == WRITE_IMM) {
 			if(run_iter_bw_infinitely_server(&ctx,&user_param)) {
 				fprintf(stderr," Error occurred while running infinitely on server! aborting ...\n");
 				goto free_mem;

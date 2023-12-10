@@ -4511,12 +4511,8 @@ int run_iter_lat_write_imm(struct pingpong_context *ctx,struct perftest_paramete
 	uint64_t                rcnt = 0;
 	int                     ne;
 	int			err = 0;
-	int 			poll_buf_offset = 0;
-	volatile char           *poll_buf = NULL;
 	volatile char           *post_buf = NULL;
 
-	int 			size_per_qp = (user_param->use_srq) ?
-					user_param->rx_depth/user_param->num_of_qps : user_param->rx_depth;
 	struct ibv_wc           wc;
 	struct ibv_recv_wr 	*bad_wr_recv = NULL;
 
@@ -4536,12 +4532,7 @@ int run_iter_lat_write_imm(struct pingpong_context *ctx,struct perftest_paramete
 		ctx->wr[0].send_flags |= IBV_SEND_INLINE;
 	}
 
-
-	if((user_param->use_xrc || user_param->connection_type == DC))
-		poll_buf_offset = 1;
-
 	post_buf = (char*)ctx->buf[0] + user_param->size - 1;
-	poll_buf = (char*)ctx->buf[0] + (user_param->num_of_qps + poll_buf_offset)*BUFF_SIZE(ctx->size, ctx->cycle_buffer) + user_param->size - 1;
 
 	/* Duration support in latency tests. */
 	if (user_param->test_type == DURATION) {
