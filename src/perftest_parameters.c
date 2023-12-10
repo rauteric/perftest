@@ -624,7 +624,7 @@ static void usage(const char *argv0, VerbType verb, TestType tst, int connection
 	printf(" Use out of order data placement\n");
 	#endif
 
-	if (tst == LAT && verb == WRITE) {
+	if ((tst == LAT || test == BW) && verb == WRITE) {
 		printf("      --write_with_imm ");
 		printf(" use write-with-immediate verb instead of write\n");
 	}
@@ -1389,9 +1389,10 @@ static void force_dependecies(struct perftest_parameters *user_param)
 
 		}
 
-		if (user_param->duplex && user_param->verb == SEND) {
+		if (user_param->duplex && (user_param->verb == SEND || user_param->verb == WRITE_IMM)) {
 			printf(RESULT_LINE);
-			fprintf(stderr," run_infinitely mode is not supported in SEND Bidirectional BW test\n");
+			fprintf(stderr," run_infinitely mode is not supported in SEND or WRITE_IMM "
+					"Bidirectional BW test\n");
 			exit(1);
 		}
 		if (user_param->rate_limit_type != DISABLE_RATE_LIMIT) {
@@ -3020,8 +3021,8 @@ int parser(struct perftest_parameters *user_param,char *argv[], int argc)
 				}
 				#endif
 				if (use_write_with_imm_flag) {
-					if (user_param->tst != LAT || user_param->verb != WRITE) {
-						fprintf(stderr, "Write_with_imm can only be used with write_lat test\n");
+					if ((user_param->tst != LAT && user_param->test != BW) || user_param->verb != WRITE) {
+						fprintf(stderr, "Write_with_imm can only be used with write_lat and write_bw tests\n");
 						return FAILURE;
 					}
 					user_param->verb = WRITE_IMM;

@@ -4331,7 +4331,7 @@ int run_iter_bi(struct pingpong_context *ctx,
 					goto cleaning;
 				}
 
-				if (wc_tx[i].opcode == IBV_WC_RDMA_WRITE) {
+				if (wc_tx[i].opcode == IBV_WC_RDMA_WRITE && user_param->verb != WRITE_IMM) {
 					if (!ctx->send_rcredit) {
 						fprintf(stderr, "Polled RDMA_WRITE completion without recv credit request\n");
 						return_value = FAILURE;
