@@ -1044,7 +1044,7 @@ int alloc_ctx(struct pingpong_context *ctx,struct perftest_parameters *user_para
 		memset(ctx->ccnt, 0, user_param->num_of_qps * sizeof (uint64_t));
 
 	} else if ((user_param->tst == BW || user_param->tst == LAT_BY_BW)
-		   && user_param->verb == SEND && user_param->machine == SERVER) {
+		   && (user_param->verb == SEND || user_param->verb == WRITE_IMM) && user_param->machine == SERVER) {
 
 		ALLOC(ctx->my_addr, uint64_t, user_param->num_of_qps);
 		ALLOC(user_param->tcompleted, cycles_t, 1);
@@ -2464,7 +2464,7 @@ int ctx_modify_qp_to_init(struct ibv_qp *qp,struct perftest_parameters *user_par
 			case READ  : attr.qp_access_flags = IBV_ACCESS_REMOTE_READ;  break;
 			case WRITE_IMM:
 			case WRITE :
-				     attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE; break;
+				     attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE; break;
 			case SEND  : attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE;
 		}
 		flags |= IBV_QP_ACCESS_FLAGS;

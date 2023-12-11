@@ -363,7 +363,7 @@ static void usage(const char *argv0, VerbType verb, TestType tst, int connection
 		printf(" Generate Cqe only after <--cq-mod> completion\n");
 	}
 
-	if (verb == SEND && tst != FS_RATE) {
+	if ((verb == SEND || verb == WRITE_IMM) && tst != FS_RATE) {
 		printf("  -r, --rx-depth=<dep> ");
 		printf(" Rx queue size (default %d).",DEF_RX_SEND);
 		printf(" If using srq, rx-depth controls max-wr size of the srq\n");
@@ -751,7 +751,8 @@ static void init_perftest_params(struct perftest_parameters *user_param)
 	user_param->use_mcg		= OFF;
 	user_param->use_rdma_cm		= OFF;
 	user_param->work_rdma_cm	= OFF;
-	user_param->rx_depth		= user_param->verb == SEND ? DEF_RX_SEND : DEF_RX_RDMA;
+	user_param->rx_depth		= (user_param->verb == SEND || user_param->verb == WRITE_IMM)
+						? DEF_RX_SEND : DEF_RX_RDMA;
 	user_param->duplex		= OFF;
 	user_param->noPeak		= OFF;
 	user_param->req_cq_mod		= 0;
@@ -1054,7 +1055,8 @@ static void force_dependecies(struct perftest_parameters *user_param)
 			user_param->tx_depth = user_param->iters;
 		}
 
-		if (user_param->verb == SEND && user_param->rx_depth > user_param->iters) {
+		if ((user_param->verb == SEND || user_param->verb == WRITE_IMM) &&
+				user_param->rx_depth > user_param->iters) {
 			user_param->rx_depth = user_param->iters;
 		}
 
@@ -1369,7 +1371,8 @@ static void force_dependecies(struct perftest_parameters *user_param)
 		}
 	}
 
-	if (user_param->verb == SEND && user_param->tst == BW && user_param->machine == SERVER && !user_param->duplex )
+	if ((user_param->verb == SEND || user_param->verb == WRITE_IMM) && user_param->tst == BW
+			&& user_param->machine == SERVER && !user_param->duplex )
 		user_param->noPeak = ON;
 
 	/* Run infinitely dependencies */
@@ -1714,7 +1717,7 @@ static void force_dependecies(struct perftest_parameters *user_param)
 	}
 
 	/* WA for a bug when rx_depth is odd in SEND */
-	if (user_param->verb == SEND && (user_param->rx_depth % 2 == 1) && user_param->test_method == RUN_REGULAR)
+	if ((user_param->verb == SEND || user_param->verb == WRITE_IMM) && (user_param->rx_depth % 2 == 1) && user_param->test_method == RUN_REGULAR)
 		user_param->rx_depth += 1;
 
 	if (user_param->test_type == ITERATIONS && user_param->iters > 20000 && user_param->noPeak == OFF && user_param->tst == BW)
@@ -2484,7 +2487,7 @@ int parser(struct perftest_parameters *user_param,char *argv[], int argc)
 				  break;
 			case 'M': GET_STRING(user_param->user_mgid,strdupa(optarg)); break;
 			case 'r': CHECK_VALUE_IN_RANGE(user_param->rx_depth,int,MIN_RX,MAX_RX," Rx depth",not_int_ptr);
-				  if (user_param->verb != SEND && user_param->rx_depth > DEF_RX_RDMA) {
+				  if (user_param->verb != SEND && user_param->verb != WRITE_IMM && user_param->rx_depth > DEF_RX_RDMA) {
 					  fprintf(stderr," On RDMA verbs rx depth can be only 1\n");
 					  free(duplicates_checker);
 					  return FAILURE;
@@ -3422,7 +3425,7 @@ void ctx_print_test_info(struct perftest_parameters *user_param)
 	if (user_param->recv_post_list > 1)
 		printf(" Recv Post List  : %d\n", user_param->recv_post_list);
 
-	if (user_param->verb == SEND && (user_param->machine == SERVER || user_param->duplex)) {
+	if ((user_param->verb == SEND || user_param->verb == WRITE_IMM) && (user_param->machine == SERVER || user_param->duplex)) {
 		printf(" RX depth        : %d\n",user_param->rx_depth);
 	}
 
@@ -3676,7 +3679,8 @@ static void write_test_info_to_file(int out_json_fds, struct perftest_parameters
 	if (user_param->recv_post_list > 1)
 		dprintf(out_json_fds, "Recv_Post_List: %d,\n", user_param->recv_post_list);
 
-	if (user_param->verb == SEND && (user_param->machine == SERVER || user_param->duplex)) {
+	if ((user_param->verb == SEND || user_param->verb == WRITE_IMM) &&
+			(user_param->machine == SERVER || user_param->duplex)) {
 		dprintf(out_json_fds, "RX_depth: %d,\n",user_param->rx_depth);
 	}
 
