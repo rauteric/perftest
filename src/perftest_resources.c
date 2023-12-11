@@ -2464,7 +2464,7 @@ int ctx_modify_qp_to_init(struct ibv_qp *qp,struct perftest_parameters *user_par
 			case READ  : attr.qp_access_flags = IBV_ACCESS_REMOTE_READ;  break;
 			case WRITE_IMM:
 			case WRITE :
-				     attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE; break;
+				     attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE; break;
 			case SEND  : attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE;
 		}
 		flags |= IBV_QP_ACCESS_FLAGS;
