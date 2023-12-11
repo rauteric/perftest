@@ -751,7 +751,7 @@ static void init_perftest_params(struct perftest_parameters *user_param)
 	user_param->use_mcg		= OFF;
 	user_param->use_rdma_cm		= OFF;
 	user_param->work_rdma_cm	= OFF;
-	user_param->rx_depth		= (user_param->verb == SEND || user_param->verb == WRITE_IMM)
+	user_param->rx_depth		= (user_param->verb == SEND || user_param->verb == WRITE || user_param->verb == WRITE_IMM)
 						? DEF_RX_SEND : DEF_RX_RDMA;
 	user_param->duplex		= OFF;
 	user_param->noPeak		= OFF;
@@ -1050,6 +1050,10 @@ void flow_rules_force_dependecies(struct perftest_parameters *user_param)
 static void force_dependecies(struct perftest_parameters *user_param)
 {
 	/*Additional configuration and assignments.*/
+	if (user_param->verb == WRITE) {
+		user_param->rx_depth = DEF_RX_RDMA;
+	}
+
 	if (user_param->test_method != RUN_INFINITELY && user_param->test_type == ITERATIONS) {
 		if (user_param->tx_depth > user_param->iters) {
 			user_param->tx_depth = user_param->iters;
@@ -2487,7 +2491,7 @@ int parser(struct perftest_parameters *user_param,char *argv[], int argc)
 				  break;
 			case 'M': GET_STRING(user_param->user_mgid,strdupa(optarg)); break;
 			case 'r': CHECK_VALUE_IN_RANGE(user_param->rx_depth,int,MIN_RX,MAX_RX," Rx depth",not_int_ptr);
-				  if (user_param->verb != SEND && user_param->verb != WRITE_IMM && user_param->rx_depth > DEF_RX_RDMA) {
+				  if (user_param->verb != SEND && user_param->verb != WRITE && user_param->verb != WRITE_IMM && user_param->rx_depth > DEF_RX_RDMA) {
 					  fprintf(stderr," On RDMA verbs rx depth can be only 1\n");
 					  free(duplicates_checker);
 					  return FAILURE;
